@@ -1,0 +1,14 @@
+FROM gradle:8.8.0-jdk21 AS build
+WORKDIR /app
+COPY gradle gradle
+COPY gradlew .
+COPY build.gradle.kts settings.gradle.kts ./
+RUN ./gradlew dependencies --no-daemon
+COPY . .
+RUN ./gradlew build --parallel --no-daemon -x test
+
+FROM eclipse-temurin:21-jre-jammy AS runtime
+WORKDIR /app
+COPY --from=build /app/build/libs/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["sh", "-c", "java -jar -Dspring.profiles.active=$APP_ENV -Djasypt.encryptor.password=$JASYPT_PASSWORD app.jar"]
